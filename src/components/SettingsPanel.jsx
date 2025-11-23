@@ -102,7 +102,11 @@ const FontSelect = React.memo(({
                     style={dropdownStyle}
                 >
                     <div className="overflow-y-auto custom-scroll max-h-60">
-                        {Object.entries(fontDefs).map(([key, font]) => (
+                        {Object.entries(fontDefs)
+                            .sort(([keyA, fontA], [keyB, fontB]) =>
+                                fontA.name.localeCompare(fontB.name)
+                            )
+                            .map(([key, font]) => (
                             <button
                                 key={key}
                                 onClick={() => handleFontSelect(key)}
@@ -147,7 +151,8 @@ export const SettingsPanel = React.memo(({
     systemVars,
     uiStyle,
 }) => {
-    if (!showConfig) return null;
+    // Global mobile detection for consistent mobile behavior
+    const isMobile = useMemo(() => window.innerWidth < 768, []);
 
     const CurrentStyleIcon = useMemo(() => styles[activeStyle].icon, [styles, activeStyle]);
     const CurrentParticleIcon = useMemo(
@@ -156,11 +161,12 @@ export const SettingsPanel = React.memo(({
     );
 
     // Get theme-responsive variables for proper contrast
-    const semanticVars = useMemo(() => 
+    const semanticVars = useMemo(() =>
         generateSemanticVars(activePalette, isDarkMode),
         [activePalette, isDarkMode]
     );
 
+    // Handler functions - defined before useEffect to avoid lexical declaration errors
     const handleModeToggle = useCallback((setDarkMode) => {
         setIsDarkMode(setDarkMode);
     }, [setIsDarkMode]);
@@ -181,10 +187,20 @@ export const SettingsPanel = React.memo(({
         setIsParticleModalOpen(true);
     }, [setIsParticleModalOpen]);
 
+    // Move ALL useMemo hooks before the early return to satisfy Rules of Hooks
     const sidebarStyle = useMemo(() => ({
         ...uiStyle,
         transform: showConfig ? "translateX(0)" : "translateX(-100%)",
-    }), [uiStyle, showConfig]);
+        // Mobile-optimized solid background for better contrast
+        background: isMobile
+            ? (isDarkMode ? '#1f2937' : '#ffffff')
+            : uiStyle.background,
+        // Mobile-specific styling
+        boxShadow: isMobile
+            ? '2px 0 10px rgba(0,0,0,0.1)'
+            : uiStyle.boxShadow,
+        backdropFilter: isMobile ? 'none' : uiStyle.backdropFilter,
+    }), [uiStyle, showConfig, isDarkMode, isMobile]);
 
     const modeToggleStyle = useMemo(() => ({
         background: isDarkMode ? "#1e293b" : "#e2e8f0",
@@ -207,6 +223,22 @@ export const SettingsPanel = React.memo(({
         fontFamily: fontDefs[activeFont].family,
     }), [semanticVars, styles, activeStyle, fontDefs, activeFont]);
 
+    // Mobile QoL: Add touch improvements
+    const mobileButtonStyle = useMemo(() => ({
+        ...buttonStyle,
+        minHeight: isMobile ? '48px' : 'auto',
+        padding: isMobile ? '12px 16px' : '8px 12px',
+        fontSize: isMobile ? '16px' : '14px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+            transform: 'scale(1.05)',
+        },
+        '&:active': {
+            transform: 'scale(0.95)',
+        },
+    }), [buttonStyle, isMobile]);
+
     const labelStyle = useMemo(() => ({
         color: semanticVars["--text-main"],
     }), [semanticVars]);
@@ -219,17 +251,63 @@ export const SettingsPanel = React.memo(({
         color: isDarkMode ? "#f8fafc" : "#64748b",
     }), [isDarkMode]);
 
-    const particleName = useMemo(() => 
+    const particleName = useMemo(() =>
         particleOptions.find((p) => p.id === activeParticleMode)?.name || "Off",
         [particleOptions, activeParticleMode]
     );
+
+    // Mobile swipe gesture support for sidebar closing
+    useEffect(() => {
+        if (!isMobile || !showConfig) return;
+
+        let startX = 0;
+        let currentX = 0;
+        let isSwiping = false;
+
+        const handleTouchStart = (e) => {
+            startX = e.touches[0].clientX;
+            isSwiping = true;
+        };
+
+        const handleTouchMove = (e) => {
+            if (!isSwiping) return;
+            currentX = e.touches[0].clientX;
+        };
+
+        const handleTouchEnd = () => {
+            if (!isSwiping) return;
+
+            // Swipe right to left (closing gesture)
+            const swipeDistance = startX - currentX;
+            const swipeThreshold = 50;
+
+            if (swipeDistance > swipeThreshold && startX < 100) {
+                handleConfigClose();
+            }
+
+            isSwiping = false;
+        };
+
+        document.addEventListener('touchstart', handleTouchStart);
+        document.addEventListener('touchmove', handleTouchMove);
+        document.addEventListener('touchend', handleTouchEnd);
+
+        return () => {
+            document.removeEventListener('touchstart', handleTouchStart);
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, [isMobile, showConfig, handleConfigClose]);
+
+    // Early return must come after ALL hooks
+    if (!showConfig) return null;
 
     return (
         <>
             {/* MOBILE OVERLAY FOR CLICK-OUTSIDE-TO-CLOSE */}
             {showConfig && (
                 <div
-                    className="fixed inset-0 z-40 bg-black/50 md:hidden"
+                    className={`fixed inset-0 z-40 bg-black/50 ${isMobile ? 'block' : 'hidden'}`}
                     onClick={handleConfigClose}
                 />
             )}
@@ -237,7 +315,10 @@ export const SettingsPanel = React.memo(({
             {/* CONFIGURATOR SIDEBAR */}
             <div
                 className={`
-                    fixed top-0 left-0 h-full z-50 transition-transform duration-300 w-64 sm:w-72 md:w-80 max-w-[90vw] sm:max-w-[85vw] overflow-y-auto flex flex-col
+                    fixed top-0 left-0 h-full z-50 transition-transform duration-300
+                    ${isMobile ? 'w-64' : 'sm:w-72 md:w-80'}
+                    ${isMobile ? 'max-w-[90vw]' : 'sm:max-w-[85vw]'}
+                    overflow-y-auto flex flex-col
                 `}
                 style={sidebarStyle}
             >
@@ -251,10 +332,14 @@ export const SettingsPanel = React.memo(({
                         </h3>
                         <button
                             onClick={handleConfigClose}
-                            className="p-2 rounded-full hover:bg-black/5"
+                            className={`p-2 rounded-full transition-all ${
+                                isMobile
+                                    ? 'hover:bg-black/10 active:bg-black/20 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center'
+                                    : 'hover:bg-black/5'
+                            }`}
                             style={labelStyle}
                         >
-                            <X size={20} />
+                            <X size={isMobile ? 24 : 20} />
                         </button>
                     </div>
 
@@ -269,17 +354,21 @@ export const SettingsPanel = React.memo(({
                         />
                         <button
                             onClick={() => handleModeToggle(false)}
-                            className="flex-1 relative z-10 flex items-center justify-center gap-2 text-xs font-bold transition-colors"
+                            className={`flex-1 relative z-10 flex items-center justify-center gap-2 text-xs font-bold transition-colors ${
+                                isMobile ? 'min-h-[44px]' : ''
+                            }`}
                             style={lightButtonStyle}
                         >
-                            <Sun size={18} /> LIGHT
+                            <Sun size={isMobile ? 20 : 18} /> LIGHT
                         </button>
                         <button
                             onClick={() => handleModeToggle(true)}
-                            className="flex-1 relative z-10 flex items-center justify-center gap-2 text-xs font-bold transition-colors"
+                            className={`flex-1 relative z-10 flex items-center justify-center gap-2 text-xs font-bold transition-colors ${
+                                isMobile ? 'min-h-[44px]' : ''
+                            }`}
                             style={darkButtonStyle}
                         >
-                            <Moon size={18} /> DARK
+                            <Moon size={isMobile ? 20 : 18} /> DARK
                         </button>
                     </div>
 
@@ -295,8 +384,10 @@ export const SettingsPanel = React.memo(({
                         </div>
                         <button
                             onClick={handlePaletteModalToggle}
-                            className="w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all hover:shadow-md"
-                            style={buttonStyle}
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all hover:shadow-md ${
+                                isMobile ? 'hover:scale-[1.02] active:scale-[0.98]' : ''
+                            }`}
+                            style={isMobile ? mobileButtonStyle : buttonStyle}
                         >
                             <div className="flex items-center gap-3">
                                 <div
@@ -324,8 +415,10 @@ export const SettingsPanel = React.memo(({
                         </label>
                         <button
                             onClick={handleStyleModalToggle}
-                            className="w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all hover:shadow-md"
-                            style={buttonStyle}
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all hover:shadow-md ${
+                                isMobile ? 'hover:scale-[1.02] active:scale-[0.98]' : ''
+                            }`}
+                            style={isMobile ? mobileButtonStyle : buttonStyle}
                         >
                             <div className="flex items-center gap-3">
                                 <CurrentStyleIcon size={20} />
@@ -368,8 +461,10 @@ export const SettingsPanel = React.memo(({
                         </label>
                         <button
                             onClick={handleParticleModalToggle}
-                            className="w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all hover:shadow-md"
-                            style={buttonStyle}
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition-all hover:shadow-md ${
+                                isMobile ? 'hover:scale-[1.02] active:scale-[0.98]' : ''
+                            }`}
+                            style={isMobile ? mobileButtonStyle : buttonStyle}
                         >
                             <div className="flex items-center gap-3">
                                 <CurrentParticleIcon size={20} />

@@ -28,15 +28,19 @@ export const useTheme = () => {
     }), [fontConfig]);
 
   
-    const uiStyle = useMemo(() => ({
-        background: systemVarsData["--sys-bg"],
-        color: systemVarsData["--sys-text"],
-        borderRadius: "16px", // Fixed radius
-        border: `1px solid ${systemVarsData["--sys-border"]}`,
-        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)", // Fixed shadow
-        backdropFilter: "none",
-        fontFamily: fontConfig.family,
-    }), [systemVarsData, fontConfig, isDarkMode]);
+    const uiStyle = useMemo(() => {
+        // Use the background from the current theme's previewVars
+        const bgApp = previewVars["--bg-app"] || (isDarkMode ? "#1e293b" : "#ffffff");
+        return {
+            background: bgApp,
+            color: systemVarsData["--sys-text"],
+            borderRadius: "16px", // Fixed radius
+            border: `1px solid ${systemVarsData["--sys-border"]}`,
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)", // Fixed shadow
+            backdropFilter: "none",
+            fontFamily: fontConfig.family,
+        };
+    }, [systemVarsData, fontConfig, isDarkMode, previewVars]);
 
     const scrollbarThumbColor = isDarkMode
         ? "rgba(255, 255, 255, 0.2)"

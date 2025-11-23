@@ -109,9 +109,16 @@ export const PaletteModal = ({
                         />
                     </div>
                     <button
-                        onClick={handleBackdropClick}
+                        onClick={onClose}
+                        onTouchEnd={(e) => {
+                            e.preventDefault();
+                            onClose();
+                        }}
                         className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                        style={{ color: textColor }}
+                        style={{
+                            color: textColor,
+                            touchAction: 'manipulation'
+                        }}
                     >
                         <X size={24} />
                     </button>
@@ -286,9 +293,16 @@ export const StyleModal = ({
                         />
                     </div>
                     <button
-                        onClick={handleBackdropClick}
+                        onClick={onClose}
+                        onTouchEnd={(e) => {
+                            e.preventDefault();
+                            onClose();
+                        }}
                         className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                        style={{ color: textColor }}
+                        style={{
+                            color: textColor,
+                            touchAction: 'manipulation'
+                        }}
                     >
                         <X size={24} />
                     </button>
@@ -424,9 +438,16 @@ export const ParticleModal = ({
                         <Sparkles size={24} /> Select Particle
                     </h2>
                     <button
-                        onClick={handleBackdropClick}
+                        onClick={onClose}
+                        onTouchEnd={(e) => {
+                            e.preventDefault();
+                            onClose();
+                        }}
                         className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                        style={{ color: textColor }}
+                        style={{
+                            color: textColor,
+                            touchAction: 'manipulation'
+                        }}
                     >
                         <X size={24} />
                     </button>

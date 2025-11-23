@@ -73,7 +73,7 @@ const App = React.memo(() => {
         handleResize();
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
-    }, []);
+    }, [setShowConfig]);
 
     // Memoize computed styles for better performance
     const computedStyles = useMemo(() => ({
@@ -84,7 +84,7 @@ const App = React.memo(() => {
         // Performance optimizations for glassmorphism
         ...(activeStyle === 'glassmorphism' && {
             '--backdrop': isMobile ? 'blur(4px) saturate(100%)' : styles[activeStyle].vars['--backdrop'],
-            'will-change': 'backdrop-filter',
+            'willChange': 'backdrop-filter',
             'transform': 'translateZ(0)' // Hardware acceleration
         })
     }), [previewVars, fontVars, activeStyle, isDarkMode, isMobile]);
@@ -105,7 +105,7 @@ const App = React.memo(() => {
             color: var(--placeholder-color) !important;
             opacity: 1;
         }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Raleway:wght@400;600&family=Quicksand:wght@500;700&family=Lato:wght@400;700&family=Roboto:wght@400;500&family=Open+Sans:wght@400;600&family=Playfair+Display:wght@400;600&family=Merriweather:wght@300;700&family=PT+Serif:wght@400;700&family=Fira+Code:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Source+Code+Pro:wght@400;600&family=Space+Mono:wght@400;700&family=Ubuntu+Mono:wght@400;700&family=Inconsolata:wght@400;700&family=Oswald:wght@400;500&family=Press+Start+2P&family=Orbitron:wght@500;800&family=Play:wght@400;700&family=Archivo+Black&family=Russo+One&family=Lora:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=Poppins:wght@400;600&family=Montserrat:wght@400;700&display=swap');
+        /* Additional fonts loaded dynamically as needed */
         @font-face {
             font-family: 'Chicago';
             src: local('Chicago'), local('System'), sans-serif;
@@ -166,14 +166,14 @@ const App = React.memo(() => {
                             <div
                                 className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full opacity-20 blur-[40px] transition-opacity duration-1000"
                                 style={{
-                                    background: "var(--logo-glow)",
+                                    background: isDarkMode ? "var(--logo-glow)" : "var(--accent)",
                                     animation: "subtle-pulse 4s ease-in-out infinite"
                                 }}
                             />
                             <div
                                 className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full opacity-20 blur-[40px] transition-opacity duration-1000"
                                 style={{
-                                    background: "var(--accent)",
+                                    background: isDarkMode ? "var(--accent)" : "var(--logo-glow)",
                                     animation: "subtle-pulse 4s ease-in-out infinite 2s"
                                 }}
                             />
@@ -224,10 +224,9 @@ const App = React.memo(() => {
                         onClick={() => setShowConfig(true)}
                         className="fixed bottom-6 left-6 z-50 p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 sm:p-3 md:p-4"
                         style={{
-                            background: activeStyle === 'glassmorphism'
-                                ? (isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(243, 244, 246, 0.95)')
-                                : paletteDefs[activePalette].primary,
-                            color: isDarkMode ? "#fff" : "#000",
+                            background: paletteDefs[activePalette].primary,
+                            color: paletteDefs[activePalette].fgForce ||
+                                   (paletteDefs[activePalette].isDark ? "#ffffff" : "#000000"),
                             backdropFilter: activeStyle === 'glassmorphism' ? 'blur(12px)' : 'none',
                             border: activeStyle === 'glassmorphism' ? `1px solid ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'}` : 'none',
                         }}

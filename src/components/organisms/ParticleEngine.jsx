@@ -24,22 +24,10 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
         const contrastColor = mainColor;
 
         const resize = () => {
-            // Mobile-optimized canvas sizing with performance consideration
-            const isMobile = window.innerWidth < 768;
-
-            // Reduce canvas resolution on mobile for better performance
-            if (isMobile && mode === 'matrix') {
-                // Scale down canvas for mobile matrix rendering
-                canvas.width = window.innerWidth * 0.8;
-                canvas.height = window.innerHeight * 0.8;
-                // Center the canvas
-                canvas.style.transform = 'scale(1.25)';
-                canvas.style.transformOrigin = 'center center';
-            } else {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                canvas.style.transform = 'none';
-            }
+            // Always use full screen for better Matrix experience
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.style.transform = 'none';
         };
 
         // --- OPTIMIZED MATRIX PARTICLE ---
@@ -47,8 +35,14 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
             constructor(x, fontSize) {
                 this.x = x;
                 this.fontSize = fontSize;
-                this.speed = Math.random() * 4 + 6; // Faster movement for better visual effect
-                this.trailLength = Math.floor(Math.random() * 15 + 20); // Even longer trail
+                const isMobile = window.innerWidth < 768;
+
+                // Mobile-optimized settings
+                this.speed = Math.random() * 3 + (isMobile ? 8 : 6);
+                this.trailLength = isMobile ?
+                    Math.floor(Math.random() * 8 + 12) : // Shorter trails on mobile
+                    Math.floor(Math.random() * 15 + 20); // Longer trails on desktop
+
                 this.chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ";
                 this.katakanaChars = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ";
 
@@ -58,12 +52,12 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
 
                 for (let i = 0; i < this.trailLength; i++) {
                     this.trail[i] = this.chars.charAt(Math.floor(Math.random() * this.chars.length));
-                    this.trailOpacity[i] = i === 0 ? 1.0 : (1 - (i / this.trailLength)) * 0.5; // Reduced trail opacity
+                    this.trailOpacity[i] = i === 0 ? 1.0 : (1 - (i / this.trailLength)) * 0.6;
                 }
 
                 this.y = Math.random() * -canvas.height;
                 this.frame = 0;
-                this.changeRate = Math.floor(Math.random() * 8) + 4; // Even faster changes
+                this.changeRate = Math.floor(Math.random() * (isMobile ? 12 : 8)) + (isMobile ? 6 : 4);
 
                 // Cache katakana character for head to avoid random generation on every draw
                 this.currentHeadChar = this.katakanaChars.charAt(Math.floor(Math.random() * this.katakanaChars.length));
@@ -96,12 +90,14 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
             }
 
             draw() {
+                const isMobile = window.innerWidth < 768;
+
                 ctx.font = `${this.fontSize}px 'Courier New', monospace`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'top';
 
                 // Set text rendering for crisp characters
-                ctx.fillStyle = '#000000'; // Set any initial color
+                ctx.fillStyle = '#000000';
                 ctx.globalAlpha = 0;
                 ctx.fillText('', 0, 0); // Trigger font rendering initialization
 
@@ -116,27 +112,33 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
 
                     const yPos = this.y - (i * this.fontSize);
 
-                    // Skip if outside canvas
+                    // Skip if outside canvas - optimized bounds checking
                     if (yPos < -this.fontSize || yPos > canvas.height + this.fontSize) continue;
 
                     const opacity = this.trailOpacity[i];
                     if (opacity <= 0) continue;
 
                     if (i === 0) {
-                        // Head - extra crisp rendering with pixel-perfect positioning
+                        // Head - extra crisp rendering
                         ctx.fillStyle = isDarkMode ? "#ffffff" : "#000000";
                         ctx.globalAlpha = Math.min(1.0, opacity);
-                        ctx.save();
-                        // Round to nearest pixel for perfect alignment
-                        const pixelX = Math.round(this.x);
-                        const pixelY = Math.round(yPos);
-                        ctx.translate(pixelX, pixelY);
-                        ctx.fillText(char, 0, 0);
-                        ctx.restore();
+
+                        if (isMobile) {
+                            // Simpler rendering on mobile
+                            ctx.fillText(char, this.x, yPos);
+                        } else {
+                            // Pixel-perfect positioning on desktop
+                            ctx.save();
+                            const pixelX = Math.round(this.x);
+                            const pixelY = Math.round(yPos);
+                            ctx.translate(pixelX, pixelY);
+                            ctx.fillText(char, 0, 0);
+                            ctx.restore();
+                        }
                     } else {
-                        // Trail - uses theme accent color
+                        // Trail - uses theme accent color with mobile optimization
                         ctx.fillStyle = mainColor;
-                        ctx.globalAlpha = opacity * 0.7; // Higher opacity for readable trail
+                        ctx.globalAlpha = opacity * (isMobile ? 0.5 : 0.7); // Reduced opacity on mobile
                         ctx.fillText(char, this.x, yPos);
                     }
                 }
@@ -151,7 +153,7 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
                 this.y = canvas.height / 2;
                 this.speed = 6;
                 this.history = [];
-                this.maxHistory = 50; // Shorter trail for mobile
+                this.maxHistory = 20; // Much shorter trail
             }
 
             update() {
@@ -919,16 +921,14 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
                 pCount = 50;
                 for (let i = 0; i < pCount; i++) particles.push(new FireflyParticle());
             } else if (mode === "matrix") {
-                // Mobile-optimized matrix settings
+                // Responsive matrix settings with bigger fonts
                 const isMobile = window.innerWidth < 768;
-                const fontSize = isMobile ? 20 : 28; // Smaller font on mobile
-                const columnSpacing = fontSize * 1.5;
+                const fontSize = isMobile ? 24 : 36; // Much bigger fonts for better visibility
+                const columnSpacing = fontSize * 1.1; // Tighter spacing for denser effect
                 const columns = Math.floor(canvas.width / columnSpacing);
 
-                // Reduce columns on mobile for better performance
-                const maxColumns = isMobile ? Math.floor(columns * 0.7) : columns;
-
-                for (let i = 0; i < maxColumns; i++) {
+                // Use all columns for better Matrix coverage
+                for (let i = 0; i < columns; i++) {
                     particles.push(new MatrixColumn(i * columnSpacing, fontSize));
                 }
             } else if (mode === "pulse") {
@@ -942,12 +942,12 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
             const isMobile = window.innerWidth < 768;
             const isGlassmorphism = activeStyle === 'glassmorphism';
 
-            // Higher frame skipping for mobile + glassmorphism + matrix combination
+            // Optimized frame rate for smooth Matrix animation
             let frameSkip = 16; // 60fps
             if (isMobile && isGlassmorphism && mode === 'matrix') {
-                frameSkip = 33; // 30fps for better performance
+                frameSkip = 20; // 50fps - smoother than 30fps
             } else if (isMobile) {
-                frameSkip = 20; // 50fps for mobile
+                frameSkip = 16; // Full 60fps for better mobile experience
             }
 
             if (currentTime - lastFrameTime.current < frameSkip) {
@@ -968,13 +968,8 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
                     ? `rgba(0, 0, 0, ${alpha})`
                     : `rgba(255, 255, 255, ${alpha})`;
 
-                // Only clear the necessary area for performance
-                if (window.innerWidth < 768) {
-                    // Mobile: partial clearing for better performance
-                    ctx.fillRect(0, 0, canvas.width, canvas.height * 0.8);
-                } else {
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                }
+                // Always clear full canvas to prevent dark residue buildup
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             } else {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
@@ -1047,6 +1042,9 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
                 willChange: 'transform', // Optimize for animations
                 opacity: 0.7 // Slightly more visible but still subtle
             }}
+            role="img"
+            aria-label={`${mode} particle animation background effect`}
+            aria-hidden="true"
         />
     );
 };
