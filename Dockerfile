@@ -9,12 +9,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm ci
+RUN npm ci --maxsockets=1
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build with memory optimization
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 RUN npm run build
 
 # Stage 2: Production stage
