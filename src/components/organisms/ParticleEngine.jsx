@@ -151,7 +151,7 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
                 this.y = canvas.height / 2;
                 this.speed = 6;
                 this.history = [];
-                this.maxHistory = 200; // Much longer trail
+                this.maxHistory = 50; // Shorter trail for mobile
             }
 
             update() {

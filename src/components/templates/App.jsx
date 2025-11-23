@@ -222,10 +222,14 @@ const App = React.memo(() => {
                 {!showConfig && (
                     <button
                         onClick={() => setShowConfig(true)}
-                        className="fixed bottom-6 left-6 z-50 p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2"
+                        className="fixed bottom-6 left-6 z-50 p-4 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 sm:p-3 md:p-4"
                         style={{
-                            background: paletteDefs[activePalette].primary,
+                            background: activeStyle === 'glassmorphism'
+                                ? (isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(243, 244, 246, 0.95)')
+                                : paletteDefs[activePalette].primary,
                             color: isDarkMode ? "#fff" : "#000",
+                            backdropFilter: activeStyle === 'glassmorphism' ? 'blur(12px)' : 'none',
+                            border: activeStyle === 'glassmorphism' ? `1px solid ${isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'}` : 'none',
                         }}
                     >
                         <Settings size={24} />

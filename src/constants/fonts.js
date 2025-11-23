@@ -155,4 +155,160 @@ export const fontDefs = {
         weightNormal: 400,
         weightBold: 600,
     },
+
+    // Industry Standard & Stylish Fonts
+    helvetica: {
+        name: "Helvetica",
+        family: '"Helvetica Neue", "Helvetica", Arial, sans-serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    arial: {
+        name: "Arial",
+        family: 'Arial, "Helvetica Neue", Helvetica, sans-serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    georgia: {
+        name: "Georgia",
+        family: 'Georgia, "Times New Roman", serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    times: {
+        name: "Times New Roman",
+        family: '"Times New Roman", Times, serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    basker: {
+        name: "Baskerville",
+        family: '"Baskerville", "Times New Roman", serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    gill: {
+        name: "Gill Sans",
+        family: '"Gill Sans", "Gill Sans MT", Calibri, sans-serif',
+        weightNormal: 400,
+        weightBold: 600,
+    },
+    futura: {
+        name: "Futura",
+        family: '"Futura", "Trebuchet MS", Arial, sans-serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    didot: {
+        name: "Didot",
+        family: 'Didot, "Times New Roman", serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    bodoni: {
+        name: "Bodoni MT",
+        family: '"Bodoni MT", Didot, "Times New Roman", serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    rockwell: {
+        name: "Rockwell",
+        family: 'Rockwell, "Courier Bold", Courier, Georgia, serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    gotham: {
+        name: "Gotham",
+        family: '"Gotham", "Helvetica Neue", Helvetica, Arial, sans-serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    proxima: {
+        name: "Proxima Nova",
+        family: '"Proxima Nova", "Helvetica Neue", Helvetica, Arial, sans-serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    acumin: {
+        name: "Acumin Pro",
+        family: '"Acumin Pro", "Helvetica Neue", Arial, sans-serif',
+        weightNormal: 400,
+        weightBold: 600,
+    },
+
+    // Modern Stylish Display Fonts
+    bebas: {
+        name: "Bebas Neue",
+        family: '"Bebas Neue", cursive',
+        weightNormal: 400,
+        weightBold: 400,
+    },
+    oswald: {
+        name: "Oswald",
+        family: '"Oswald", "Roboto", sans-serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    nunito: {
+        name: "Nunito",
+        family: '"Nunito", sans-serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    rubik: {
+        name: "Rubik",
+        family: '"Rubik", sans-serif',
+        weightNormal: 400,
+        weightBold: 600,
+    },
+    manrope: {
+        name: "Manrope",
+        family: '"Manrope", sans-serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    dm: {
+        name: "DM Sans",
+        family: '"DM Sans", sans-serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    figtree: {
+        name: "Figtree",
+        family: '"Figtree", sans-serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+    instrument: {
+        name: "Instrument Serif",
+        family: '"Instrument Serif", serif',
+        weightNormal: 400,
+        weightBold: 400,
+    },
+    cardo: {
+        name: "Cardo",
+        family: '"Cardo", serif',
+        weightNormal: 400,
+        weightBold: 700,
+    },
+
+    // Professional Fonts
+    glyphter: {
+        name: "Glyphter",
+        family: '"Glyphter", "Helvetica Neue", Arial, sans-serif',
+        weightNormal: 400,
+        weightBold: 600,
+    },
+    thein: {
+        name: "Theinhardt",
+        family: '"Theinhardt", "Helvetica Neue", Arial, sans-serif',
+        weightNormal: 400,
+        weightBold: 600,
+    },
+    azimuth: {
+        name: "Azimuth",
+        family: '"Azimuth", "Helvetica Neue", Arial, sans-serif',
+        weightNormal: 400,
+        weightBold: 800,
+    },
 };
