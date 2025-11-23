@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezident Component Runner</title>
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide React Icons - loaded as a global -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 18px;
+        }
+
+        .error {
+            background: #ff4444;
+            color: white;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 8px;
+        }
+
+        .component-container {
+            flex: 1;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="loading">Loading React component...</div>
+    </div>
+
+    <script type="text/babel">
+        // Make lucide icons available globally for the component
+        window.lucide = window.lucide || {};
+
+        // Load the rezident.jsx file and execute it
+        fetch('./rezident.jsx')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(code => {
+                // Transform import statements to work with global variables
+                let transformedCode = code
+                    // Replace React import with global
+                    .replace(/import React,?[^;]*;?/g, '')
+                    // Replace lucide imports with global reference
+                    .replace(/import\s*\{[^}]*\}\s*from\s*["']lucide-react["'];?/g, '')
+                    // Replace other imports (remove them for now)
+                    .replace(/import\s+.*from\s*["'][^"']*["'];?/g, '');
+
+                // Execute the transformed code
+                try {
+                    eval(transformedCode);
+
+                    // Create a default App component if the file doesn't export one
+                    const App = window.Rezident || (() => {
+                        return React.createElement('div', {
+                            style: { padding: '20px', textAlign: 'center' }
+                        }, 'Rezident component loaded successfully!');
+                    });
+
+                    // Render the component
+                    const root = ReactDOM.createRoot(document.getElementById('root'));
+                    root.render(React.createElement(App));
+
+                } catch (error) {
+                    console.error('Error executing component:', error);
+                    document.getElementById('root').innerHTML =
+                        `<div class="error">
+                            <h3>Error running React component:</h3>
+                            <pre>${error.message}</pre>
+                            <details>
+                                <summary>Stack trace</summary>
+                                <pre>${error.stack}</pre>
+                            </details>
+                        </div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading file:', error);
+                document.getElementById('root').innerHTML =
+                    `<div class="error">
+                        <h3>Error loading rezident.jsx file:</h3>
+                        <p>${error.message}</p>
+                        <p>Make sure rezident.jsx is in the same directory as this HTML file.</p>
+                    </div>`;
+            });
+    </script>
+</body>
+</html>
