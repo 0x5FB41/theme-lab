@@ -226,10 +226,18 @@ export const SettingsPanel = React.memo(({
 
     return (
         <>
+            {/* MOBILE OVERLAY FOR CLICK-OUTSIDE-TO-CLOSE */}
+            {showConfig && (
+                <div
+                    className="fixed inset-0 z-40 bg-black/50 md:hidden"
+                    onClick={handleConfigClose}
+                />
+            )}
+
             {/* CONFIGURATOR SIDEBAR */}
             <div
                 className={`
-                    fixed top-0 left-0 h-full z-50 transition-transform duration-300 w-80 max-w-[85vw] overflow-y-auto flex flex-col
+                    fixed top-0 left-0 h-full z-50 transition-transform duration-300 w-64 sm:w-72 md:w-80 max-w-[90vw] sm:max-w-[85vw] overflow-y-auto flex flex-col
                 `}
                 style={sidebarStyle}
             >
