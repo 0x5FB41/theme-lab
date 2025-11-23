@@ -187,6 +187,13 @@ export const SettingsPanel = React.memo(({
         setIsParticleModalOpen(true);
     }, [setIsParticleModalOpen]);
 
+    // Mobile overlay click handler - only close if not clicking inside sidebar content
+    const handleMobileOverlayClick = useCallback((e) => {
+        if (e.target === e.currentTarget) {
+            handleConfigClose();
+        }
+    }, [handleConfigClose]);
+
     // Move ALL useMemo hooks before the early return to satisfy Rules of Hooks
     const sidebarStyle = useMemo(() => ({
         ...uiStyle,
@@ -256,7 +263,7 @@ export const SettingsPanel = React.memo(({
         [particleOptions, activeParticleMode]
     );
 
-    // Mobile swipe gesture support for sidebar closing
+    // Mobile swipe gesture support for sidebar closing - with better touch handling
     useEffect(() => {
         if (!isMobile || !showConfig) return;
 
@@ -265,8 +272,11 @@ export const SettingsPanel = React.memo(({
         let isSwiping = false;
 
         const handleTouchStart = (e) => {
-            startX = e.touches[0].clientX;
-            isSwiping = true;
+            // Only track touches on the sidebar overlay, not inside the sidebar
+            if (e.target.classList.contains('fixed') && e.target.classList.contains('inset-0')) {
+                startX = e.touches[0].clientX;
+                isSwiping = true;
+            }
         };
 
         const handleTouchMove = (e) => {
@@ -277,19 +287,19 @@ export const SettingsPanel = React.memo(({
         const handleTouchEnd = () => {
             if (!isSwiping) return;
 
-            // Swipe right to left (closing gesture)
+            // Swipe right to left (closing gesture) - only from left edge
             const swipeDistance = startX - currentX;
             const swipeThreshold = 50;
 
-            if (swipeDistance > swipeThreshold && startX < 100) {
+            if (swipeDistance > swipeThreshold && startX < 50) {
                 handleConfigClose();
             }
 
             isSwiping = false;
         };
 
-        document.addEventListener('touchstart', handleTouchStart);
-        document.addEventListener('touchmove', handleTouchMove);
+        document.addEventListener('touchstart', handleTouchStart, { passive: true });
+        document.addEventListener('touchmove', handleTouchMove, { passive: true });
         document.addEventListener('touchend', handleTouchEnd);
 
         return () => {
@@ -308,7 +318,7 @@ export const SettingsPanel = React.memo(({
             {showConfig && (
                 <div
                     className={`fixed inset-0 z-40 bg-black/50 ${isMobile ? 'block' : 'hidden'}`}
-                    onClick={handleConfigClose}
+                    onClick={handleMobileOverlayClick}
                 />
             )}
 

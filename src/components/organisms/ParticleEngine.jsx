@@ -153,7 +153,7 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
                 this.y = canvas.height / 2;
                 this.speed = 6;
                 this.history = [];
-                this.maxHistory = 20; // Much shorter trail
+                this.maxHistory = 25; // Slightly longer for smoother animation
             }
 
             update() {
@@ -192,58 +192,64 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
             draw() {
                 if (this.history.length < 2) return;
 
-                // Main EKG line with better visibility
+                // Clean drawing context - no shadows to prevent residue
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1.0;
+
+                // Draw the smooth EKG trace as a single path
                 ctx.beginPath();
                 ctx.lineJoin = "round";
                 ctx.lineCap = "round";
-                ctx.lineWidth = 3; // Thicker line
-                ctx.strokeStyle = mainColor; // Use theme accent color
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = ctx.strokeStyle;
+                ctx.lineWidth = 2.5; // Consistent line width
 
-                // Draw the EKG trace
-                ctx.moveTo(this.history[0].x, this.history[0].y);
-                for (let i = 1; i < this.history.length; i++) {
-                    // Add some glow/blur effect for dramatic parts
-                    const prevPoint = this.history[i - 1];
-                    const currPoint = this.history[i];
-                    const slope = Math.abs(currPoint.y - prevPoint.y);
-
-                    if (slope > 20) { // Dramatic parts get more glow
-                        ctx.globalAlpha = 0.8;
-                        ctx.lineWidth = 4;
-                    } else {
-                        ctx.globalAlpha = 0.6;
-                        ctx.lineWidth = 3;
-                    }
-
-                    ctx.beginPath();
-                    ctx.moveTo(prevPoint.x, prevPoint.y);
-                    ctx.lineTo(currPoint.x, currPoint.y);
-                    ctx.stroke();
+                // Create gradient for the trail effect
+                if (this.history.length > 2) {
+                    const gradient = ctx.createLinearGradient(
+                        this.history[0].x, 0,
+                        this.x, 0
+                    );
+                    gradient.addColorStop(0, mainColor + '00'); // Fully transparent at start
+                    gradient.addColorStop(0.7, mainColor + '66'); // Semi-transparent middle
+                    gradient.addColorStop(1, mainColor); // Full opacity at current position
+                    ctx.strokeStyle = gradient;
+                } else {
+                    ctx.strokeStyle = mainColor;
                 }
 
-                // Leading dot with pulsing effect
-                const pulseSize = 4 + Math.sin(Date.now() * 0.01) * 2;
-                ctx.fillStyle = isDarkMode ? "#ffffff" : "#000000";
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = ctx.strokeStyle;
-                ctx.globalAlpha = 1.0;
+                // Draw the continuous path
+                ctx.moveTo(this.history[0].x, this.history[0].y);
+
+                for (let i = 1; i < this.history.length; i++) {
+                    const point = this.history[i];
+
+                    // Smooth the path using quadratic curves for better visual quality
+                    if (i < this.history.length - 1) {
+                        const nextPoint = this.history[i + 1];
+                        const cpx = point.x;
+                        const cpy = point.y;
+                        ctx.quadraticCurveTo(cpx, cpy, nextPoint.x, nextPoint.y);
+                    } else {
+                        ctx.lineTo(point.x, point.y);
+                    }
+                }
+
+                ctx.stroke();
+
+                // Simple leading dot without shadow effects
+                const pulseSize = 3 + Math.sin(Date.now() * 0.008) * 1.5; // Smoother pulse
+                ctx.fillStyle = mainColor; // Use theme accent color instead of black/white
+                ctx.globalAlpha = 0.9;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Add trailing glow effect
-                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 20);
-                gradient.addColorStop(0, mainColor + '4D'); // Use theme accent color with transparency
-                gradient.addColorStop(1, 'transparent');
-                ctx.fillStyle = gradient;
-                ctx.globalAlpha = 0.5;
+                // Add subtle trailing dot without gradient residue
+                ctx.fillStyle = mainColor + '33'; // Very subtle trailing effect
+                ctx.globalAlpha = 0.3;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, 20, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, pulseSize + 3, 0, Math.PI * 2);
                 ctx.fill();
 
-                ctx.shadowBlur = 0;
                 ctx.globalAlpha = 1.0;
             }
         }

@@ -101,7 +101,6 @@ export const PaletteModal = ({
                             className="w-full bg-transparent outline-none text-lg font-medium placeholder-opacity-50"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            autoFocus
                             style={{
                                 color: textColor,
                                 placeholderColor: `${textColor}88`
@@ -285,7 +284,6 @@ export const StyleModal = ({
                             className="w-full bg-transparent outline-none text-lg font-medium placeholder-opacity-50"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            autoFocus
                             style={{
                                 color: textColor,
                                 placeholderColor: `${textColor}88`
