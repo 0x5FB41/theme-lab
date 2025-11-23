@@ -9,14 +9,20 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
         const canvas = canvasRef.current;
         if (!canvas || mode === "off") return;
 
-        const ctx = canvas.getContext("2d", { alpha: false });
+        const ctx = canvas.getContext("2d", {
+            alpha: false,
+            desynchronized: true, // Better performance and smoother rendering
+            willReadFrequently: false // Optimization since we don't read pixels back
+        });
+
         let particles = [];
 
-        // Disable image smoothing for crisp text rendering
-        ctx.imageSmoothingEnabled = false;
+        // Enable maximum quality image smoothing for smooth graphics rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
-        // Set better canvas rendering hints for crisp text
-        ctx.textRenderingOptimization = 'optimizeSpeed';
+        // Set better canvas rendering hints for smooth graphics
+        ctx.textRenderingOptimization = 'optimizeLegibility';
         ctx.textBaseline = 'top';
 
         // Default accent fallback
@@ -192,42 +198,54 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
             draw() {
                 if (this.history.length < 2) return;
 
+                // Enable anti-aliasing for smooth graphics
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+
                 // Clean drawing context - no shadows to prevent residue
                 ctx.shadowBlur = 0;
                 ctx.globalAlpha = 1.0;
 
-                // Draw the smooth EKG trace as a single path
+                // Draw the smooth EKG trace with better anti-aliasing
                 ctx.beginPath();
                 ctx.lineJoin = "round";
                 ctx.lineCap = "round";
-                ctx.lineWidth = 2.5; // Consistent line width
+                ctx.lineWidth = 3; // Slightly thicker for better visibility and anti-aliasing
+                ctx.miterLimit = 10; // Prevent sharp joins
 
-                // Create gradient for the trail effect
+                // Create smooth gradient for the trail effect
                 if (this.history.length > 2) {
                     const gradient = ctx.createLinearGradient(
                         this.history[0].x, 0,
                         this.x, 0
                     );
                     gradient.addColorStop(0, mainColor + '00'); // Fully transparent at start
-                    gradient.addColorStop(0.7, mainColor + '66'); // Semi-transparent middle
+                    gradient.addColorStop(0.6, mainColor + '44'); // Semi-transparent middle
+                    gradient.addColorStop(0.85, mainColor + '88'); // Near-full opacity
                     gradient.addColorStop(1, mainColor); // Full opacity at current position
                     ctx.strokeStyle = gradient;
                 } else {
                     ctx.strokeStyle = mainColor;
                 }
 
-                // Draw the continuous path
+                // Draw the continuous path with smooth curves
                 ctx.moveTo(this.history[0].x, this.history[0].y);
 
                 for (let i = 1; i < this.history.length; i++) {
                     const point = this.history[i];
 
-                    // Smooth the path using quadratic curves for better visual quality
+                    // Use cubic Bezier curves for maximum smoothness
                     if (i < this.history.length - 1) {
                         const nextPoint = this.history[i + 1];
-                        const cpx = point.x;
-                        const cpy = point.y;
-                        ctx.quadraticCurveTo(cpx, cpy, nextPoint.x, nextPoint.y);
+                        const prevPoint = this.history[i - 1];
+
+                        // Calculate control points for smooth cubic Bezier
+                        const cp1x = prevPoint.x + (point.x - prevPoint.x) * 0.25;
+                        const cp1y = prevPoint.y + (point.y - prevPoint.y) * 0.25;
+                        const cp2x = point.x + (nextPoint.x - point.x) * 0.75;
+                        const cp2y = point.y + (nextPoint.y - point.y) * 0.75;
+
+                        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, nextPoint.x, nextPoint.y);
                     } else {
                         ctx.lineTo(point.x, point.y);
                     }
@@ -235,19 +253,32 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
 
                 ctx.stroke();
 
-                // Simple leading dot without shadow effects
-                const pulseSize = 3 + Math.sin(Date.now() * 0.008) * 1.5; // Smoother pulse
-                ctx.fillStyle = mainColor; // Use theme accent color instead of black/white
-                ctx.globalAlpha = 0.9;
+                // Smooth leading dot with anti-aliasing
+                const pulseSize = 4 + Math.sin(Date.now() * 0.006) * 2; // Smoother, more prominent pulse
+                ctx.fillStyle = mainColor;
+                ctx.globalAlpha = 1.0;
+
+                // Draw with anti-aliased edges
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Add subtle trailing dot without gradient residue
-                ctx.fillStyle = mainColor + '33'; // Very subtle trailing effect
-                ctx.globalAlpha = 0.3;
+                // Add subtle anti-aliased outline for better visibility
+                ctx.strokeStyle = mainColor + '44';
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.6;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, pulseSize + 3, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Add very subtle trailing glow with anti-aliasing
+                const glowGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, pulseSize + 8);
+                glowGradient.addColorStop(0, mainColor + '66');
+                glowGradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = glowGradient;
+                ctx.globalAlpha = 0.4;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, pulseSize + 8, 0, Math.PI * 2);
                 ctx.fill();
 
                 ctx.globalAlpha = 1.0;
