@@ -157,93 +157,159 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
             constructor() {
                 this.x = 0;
                 this.y = canvas.height / 2;
-                this.speed = 6;
+                this.speed = 8;
                 this.history = [];
-                this.maxHistory = 25; // Slightly longer for smoother animation
+                this.maxHistory = 30; // Longer trail for better visual
+                this.time = 0;
+                this.energy = 0; // For dynamic intensity
+                this.lastSpike = 0;
+                this.intensity = 1.0;
             }
 
             update() {
+                this.time += 0.1;
                 this.x += this.speed;
 
-                if (this.x > canvas.width) {
-                    this.x = 0;
+                // Enhanced realistic EKG with dynamic energy
+                const cycleTime = this.time % 12;
+                let y = canvas.height / 2;
+                let intensity = 1.0;
+
+                // P-wave (gentle upward deflection)
+                if (cycleTime >= 0 && cycleTime < 2) {
+                    const t = cycleTime / 2;
+                    y += Math.sin(t * Math.PI) * 15;
+                    intensity = 0.7;
+                }
+                // PR segment (flat line)
+                else if (cycleTime >= 2 && cycleTime < 3) {
+                    y += 0;
+                    intensity = 0.4;
+                }
+                // Q-wave (small downward deflection)
+                else if (cycleTime >= 3 && cycleTime < 3.5) {
+                    const t = (cycleTime - 3) / 0.5;
+                    y += Math.sin(t * Math.PI) * -10;
+                    intensity = 0.5;
+                }
+                // R-wave (large upward spike - most prominent)
+                else if (cycleTime >= 3.5 && cycleTime < 4.5) {
+                    const t = (cycleTime - 3.5) / 1;
+                    y += Math.sin(t * Math.PI) * 120; // Larger spike
+                    intensity = 1.0;
+                    this.lastSpike = Date.now();
+                    this.energy = 1.0;
+                }
+                // S-wave (downward deflection)
+                else if (cycleTime >= 4.5 && cycleTime < 5.5) {
+                    const t = (cycleTime - 4.5) / 1;
+                    y += Math.sin(t * Math.PI) * -40;
+                    intensity = 0.8;
+                }
+                // ST segment (flat line after spike)
+                else if (cycleTime >= 5.5 && cycleTime < 6.5) {
+                    y += 0;
+                    intensity = 0.6;
+                }
+                // T-wave (rounded upward deflection)
+                else if (cycleTime >= 6.5 && cycleTime < 9) {
+                    const t = (cycleTime - 6.5) / 2.5;
+                    y += Math.sin(t * Math.PI) * 25;
+                    intensity = 0.9;
+                }
+                // Baseline (return to normal)
+                else {
+                    y += 0;
+                    intensity = 0.3;
+                }
+
+                // Add subtle cardiac rhythm variations
+                const rhythmVariation = Math.sin(this.time * 0.02) * 3;
+                y += rhythmVariation;
+
+                // Add micro-tremor for realism
+                const microNoise = (Math.random() - 0.5) * 1.5;
+                y += microNoise;
+
+                this.y = y;
+                this.intensity = intensity;
+
+                // Store enhanced history point
+                this.history.push({
+                    x: this.x,
+                    y: this.y,
+                    intensity: intensity,
+                    time: Date.now()
+                });
+
+                // Maintain optimal trail length
+                while (this.history.length > this.maxHistory) {
+                    this.history.shift();
+                }
+
+                // Reset when off screen
+                if (this.x > canvas.width + 100) {
+                    this.x = -100;
                     this.history = [];
+                    this.time = 0;
                 }
 
-                // Extended EKG Math with longer cycle
-                const t = this.x % 500; // Longer cycle for more dramatic effect
-                let offset = 0;
-
-                // P Wave (small upward hump)
-                if (t > 30 && t < 80) {
-                    offset -= Math.sin(((t - 30) / 50) * Math.PI) * 20;
-                }
-                // QRS Complex (more dramatic)
-                else if (t > 100 && t < 180) {
-                    if (t < 120) offset += (t - 100) * 3; // Q (sharp down)
-                    else if (t < 150) offset -= (t - 120) * 15; // R (sharp up - bigger)
-                    else offset += (t - 150) * 12; // S (sharp down)
-                }
-                // T Wave (broader upward hump)
-                else if (t > 240 && t < 340) {
-                    offset -= Math.sin(((t - 240) / 100) * Math.PI) * 35; // Bigger T wave
-                }
-
-                this.y = (canvas.height / 2) + offset;
-                this.history.push({ x: this.x, y: this.y });
-
-                if (this.history.length > this.maxHistory) this.history.shift();
+                // Decay energy over time
+                this.energy *= 0.98;
             }
 
             draw() {
                 if (this.history.length < 2) return;
 
-                // Enable anti-aliasing for smooth graphics
+                // Enable premium anti-aliasing
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
-
-                // Clean drawing context - no shadows to prevent residue
                 ctx.shadowBlur = 0;
                 ctx.globalAlpha = 1.0;
 
-                // Draw the smooth EKG trace with better anti-aliasing
+                // Create multi-layered visual effect
+
+                // Layer 1: Main pulse line with dynamic thickness
                 ctx.beginPath();
                 ctx.lineJoin = "round";
                 ctx.lineCap = "round";
-                ctx.lineWidth = 3; // Slightly thicker for better visibility and anti-aliasing
-                ctx.miterLimit = 10; // Prevent sharp joins
+                ctx.lineWidth = 4 + (this.intensity * 2);
+                ctx.miterLimit = 10;
 
-                // Create smooth gradient for the trail effect
-                if (this.history.length > 2) {
-                    const gradient = ctx.createLinearGradient(
-                        this.history[0].x, 0,
-                        this.x, 0
-                    );
-                    gradient.addColorStop(0, mainColor + '00'); // Fully transparent at start
-                    gradient.addColorStop(0.6, mainColor + '44'); // Semi-transparent middle
-                    gradient.addColorStop(0.85, mainColor + '88'); // Near-full opacity
-                    gradient.addColorStop(1, mainColor); // Full opacity at current position
-                    ctx.strokeStyle = gradient;
-                } else {
-                    ctx.strokeStyle = mainColor;
-                }
+                // Enhanced gradient with intensity variation
+                const gradient = ctx.createLinearGradient(
+                    this.history[0].x, 0,
+                    this.x, 0
+                );
 
-                // Draw the continuous path with smooth curves
+                // Dynamic color based on energy and intensity
+                const mainColorEnhanced = this.adjustColorIntensity(mainColor, this.intensity);
+
+                gradient.addColorStop(0, mainColorEnhanced + '00');      // Transparent start
+                gradient.addColorStop(0.3, mainColorEnhanced + '22');      // Fade in
+                gradient.addColorStop(0.7, mainColorEnhanced + '66');      // Peak intensity
+                gradient.addColorStop(0.9, mainColorEnhanced + 'AA');      // Strong trail
+                gradient.addColorStop(1, mainColorEnhanced);               // Full color at tip
+
+                ctx.strokeStyle = gradient;
+
+                // Draw smooth path with enhanced curve interpolation
                 ctx.moveTo(this.history[0].x, this.history[0].y);
 
                 for (let i = 1; i < this.history.length; i++) {
                     const point = this.history[i];
+                    const pointIntensity = point.intensity || 0.5;
 
-                    // Use cubic Bezier curves for maximum smoothness
                     if (i < this.history.length - 1) {
                         const nextPoint = this.history[i + 1];
                         const prevPoint = this.history[i - 1];
 
-                        // Calculate control points for smooth cubic Bezier
-                        const cp1x = prevPoint.x + (point.x - prevPoint.x) * 0.25;
-                        const cp1y = prevPoint.y + (point.y - prevPoint.y) * 0.25;
-                        const cp2x = point.x + (nextPoint.x - point.x) * 0.75;
-                        const cp2y = point.y + (nextPoint.y - point.y) * 0.75;
+                        // Advanced cubic Bezier with intensity consideration
+                        const tension = 0.3 + (pointIntensity * 0.2);
+                        const cp1x = prevPoint.x + (point.x - prevPoint.x) * tension;
+                        const cp1y = prevPoint.y + (point.y - prevPoint.y) * tension;
+                        const cp2x = point.x + (nextPoint.x - point.x) * (1 - tension);
+                        const cp2y = point.y + (nextPoint.y - point.y) * (1 - tension);
 
                         ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, nextPoint.x, nextPoint.y);
                     } else {
@@ -253,35 +319,116 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
 
                 ctx.stroke();
 
-                // Smooth leading dot with anti-aliasing
-                const pulseSize = 4 + Math.sin(Date.now() * 0.006) * 2; // Smoother, more prominent pulse
-                ctx.fillStyle = mainColor;
+                // Layer 2: Enhanced glow effect
+                this.drawGlowEffect();
+
+                // Layer 3: Dynamic pulse point with energy visualization
+                this.drawPulsePoint();
+
+                // Layer 4: Trailing sparkles for high energy moments
+                if (this.energy > 0.7) {
+                    this.drawTrailingSparks();
+                }
+
                 ctx.globalAlpha = 1.0;
+            }
 
-                // Draw with anti-aliased edges
+            adjustColorIntensity(color, intensity) {
+                // Parse hex color and apply intensity
+                const hex = color.replace('#', '');
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+
+                // Enhance brightness based on intensity
+                const enhancement = 0.5 + (intensity * 0.5);
+                const newR = Math.min(255, Math.floor(r + (255 - r) * enhancement));
+                const newG = Math.min(255, Math.floor(g + (255 - g) * enhancement * 0.4));
+                const newB = Math.min(255, Math.floor(b + (255 - b) * enhancement * 0.4));
+
+                return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+            }
+
+            drawGlowEffect() {
+                const glowSize = 12 + Math.sin(Date.now() * 0.003) * 6;
+                const glowGradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, glowSize
+                );
+
+                const glowColor = this.adjustColorIntensity(mainColor, this.intensity);
+                glowGradient.addColorStop(0, glowColor + '66');
+                glowGradient.addColorStop(0.5, glowColor + '33');
+                glowGradient.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = glowGradient;
+                ctx.globalAlpha = 0.7 + (this.energy * 0.3);
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
                 ctx.fill();
+            }
 
-                // Add subtle anti-aliased outline for better visibility
-                ctx.strokeStyle = mainColor + '44';
-                ctx.lineWidth = 1;
-                ctx.globalAlpha = 0.6;
+            drawPulsePoint() {
+                const baseSize = 6 + Math.sin(Date.now() * 0.008) * 4;
+                const pulseSize = baseSize + (this.energy * 6);
+                const color = this.adjustColorIntensity(mainColor, this.intensity);
+
+                // Outer glow ring
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.8;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, pulseSize + 4, 0, Math.PI * 2);
                 ctx.stroke();
 
-                // Add very subtle trailing glow with anti-aliasing
-                const glowGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, pulseSize + 8);
-                glowGradient.addColorStop(0, mainColor + '66');
-                glowGradient.addColorStop(1, 'transparent');
-                ctx.fillStyle = glowGradient;
-                ctx.globalAlpha = 0.4;
+                // Main pulse point with anti-aliasing
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 1.0;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, pulseSize + 8, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
                 ctx.fill();
 
-                ctx.globalAlpha = 1.0;
+                // Bright white core
+                const coreGradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, pulseSize
+                );
+                coreGradient.addColorStop(0, isDarkMode ? '#ffffff' : '#ffffff');
+                coreGradient.addColorStop(0.7, color);
+                coreGradient.addColorStop(1, color);
+
+                ctx.fillStyle = coreGradient;
+                ctx.globalAlpha = 0.9;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, pulseSize * 0.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawTrailingSparks() {
+                const numSparks = 4;
+                for (let i = 0; i < numSparks; i++) {
+                    const offset = i * 12;
+                    if (this.history.length > offset) {
+                        const sparkPoint = this.history[this.history.length - 1 - offset];
+                        const sparkSize = 1.5 + (Math.random() * 2.5);
+                        const sparkleOpacity = (1 - (offset / 48)) * this.energy;
+
+                        // Spark glow
+                        const sparkGradient = ctx.createRadialGradient(
+                            sparkPoint.x, sparkPoint.y, 0,
+                            sparkPoint.x, sparkPoint.y, sparkSize * 4
+                        );
+                        sparkGradient.addColorStop(0, '#ffffff');
+                        sparkGradient.addColorStop(0.2, mainColor);
+                        sparkGradient.addColorStop(1, 'transparent');
+
+                        ctx.fillStyle = sparkGradient;
+                        ctx.globalAlpha = sparkleOpacity * 0.8;
+                        ctx.beginPath();
+                        ctx.arc(sparkPoint.x, sparkPoint.y, sparkSize * 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
             }
         }
 
@@ -465,31 +612,54 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
             constructor(allNodes) {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.vx = (Math.random() - 0.5) * 1;
-                this.vy = (Math.random() - 0.5) * 1;
-                this.radius = Math.random() * 3 + 2;
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 1.5;
+                this.radius = Math.random() * 4 + 3;
                 this.allNodes = allNodes;
+                this.pulsePhase = Math.random() * Math.PI * 2;
+                this.glowIntensity = Math.random() * 0.5 + 0.5;
+                this.nodeType = Math.random() < 0.3 ? 'primary' : 'secondary'; // Different node types
+                this.connectionPulse = 0;
             }
 
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
+                this.pulsePhase += 0.05;
+                this.glowIntensity = 0.5 + Math.sin(this.pulsePhase) * 0.3;
+                this.connectionPulse = (this.connectionPulse + 0.03) % (Math.PI * 2);
 
-                // Bounce off walls
+                // Gentle wandering motion
+                this.vx += (Math.random() - 0.5) * 0.1;
+                this.vy += (Math.random() - 0.5) * 0.1;
+
+                // Speed limiting
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speed > 2) {
+                    this.vx = (this.vx / speed) * 2;
+                    this.vy = (this.vy / speed) * 2;
+                }
+
+                // Bounce off walls with dampening
                 if (this.x < this.radius || this.x > canvas.width - this.radius) {
-                    this.vx = -this.vx;
+                    this.vx = -this.vx * 0.8;
+                    this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
                 }
                 if (this.y < this.radius || this.y > canvas.height - this.radius) {
-                    this.vy = -this.vy;
+                    this.vy = -this.vy * 0.8;
+                    this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
                 }
-
-                // Keep within bounds
-                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
-                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
             }
 
             draw() {
-                // Draw connections to nearby nodes
+                // Draw enhanced connections to nearby nodes
+                this.drawConnections();
+
+                // Draw enhanced node
+                this.drawNode();
+            }
+
+            drawConnections() {
                 this.allNodes.forEach(otherNode => {
                     if (otherNode === this) return;
 
@@ -497,36 +667,157 @@ export const ParticleEngine = ({ mode, accentColor, isDarkMode, paletteName, act
                     const dy = this.y - otherNode.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    if (distance < 150 && distance > 0) {
-                        const opacity = 1 - (distance / 150);
-                        ctx.strokeStyle = contrastColor;
-                        ctx.lineWidth = 1;
-                        ctx.globalAlpha = opacity * 0.3;
-                        ctx.beginPath();
-                        ctx.moveTo(this.x, this.y);
-                        ctx.lineTo(otherNode.x, otherNode.y);
-                        ctx.stroke();
+                    // Enhanced connection range and visual effects
+                    if (distance < 200 && distance > 0) {
+                        const opacity = 1 - (distance / 200);
+                        const connectionStrength = opacity * this.glowIntensity;
+
+                        // Multi-layered connection effect
+                        this.drawConnectionLine(this.x, this.y, otherNode.x, otherNode.y, connectionStrength, distance);
                     }
                 });
+            }
 
-                // Draw node
-                ctx.fillStyle = contrastColor;
-                ctx.globalAlpha = 0.8;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
+            drawConnectionLine(x1, y1, x2, y2, strength, distance) {
+                // Connection glow effect
+                const glowSize = 3 + strength * 2;
+                const connectionGradient = ctx.createLinearGradient(x1, y1, x2, y2);
+                
+                const baseColor = this.nodeType === 'primary' ? mainColor : contrastColor;
+                connectionGradient.addColorStop(0, baseColor + Math.floor(opacity * 0xFF).toString(16));
+                connectionGradient.addColorStop(0.5, baseColor + Math.floor(opacity * 0xAA).toString(16));
+                connectionGradient.addColorStop(1, baseColor + Math.floor(opacity * 0xFF).toString(16));
 
-                // Inner glow
-                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 2);
-                gradient.addColorStop(0, contrastColor);
-                gradient.addColorStop(1, 'transparent');
-                ctx.fillStyle = gradient;
-                ctx.globalAlpha = 0.3;
+                // Outer glow line
+                ctx.strokeStyle = connectionGradient;
+                ctx.lineWidth = glowSize;
+                ctx.globalAlpha = strength * 0.3;
+                ctx.lineCap = 'round';
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius * 2, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+
+                // Core connection line
+                ctx.strokeStyle = baseColor;
+                ctx.lineWidth = 1 + strength;
+                ctx.globalAlpha = strength * 0.7;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+
+                // Energy pulse along connection
+                if (this.connectionPulse < Math.PI) {
+                    const pulseX = x1 + (x2 - x1) * (this.connectionPulse / Math.PI);
+                    const pulseY = y1 + (y2 - y1) * (this.connectionPulse / Math.PI);
+                    
+                    const pulseGradient = ctx.createRadialGradient(pulseX, pulseY, 0, pulseX, pulseY, 8);
+                    pulseGradient.addColorStop(0, '#ffffff');
+                    pulseGradient.addColorStop(0.3, baseColor);
+                    pulseGradient.addColorStop(1, 'transparent');
+                    
+                    ctx.fillStyle = pulseGradient;
+                    ctx.globalAlpha = strength * 0.8;
+                    ctx.beginPath();
+                    ctx.arc(pulseX, pulseY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
 
                 ctx.globalAlpha = 1.0;
+            }
+
+            drawNode() {
+                const nodeColor = this.nodeType === 'primary' ? mainColor : contrastColor;
+                const pulseSize = this.radius + Math.sin(this.pulsePhase) * 1.5;
+
+                // Outermost glow halo
+                const haloGradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, pulseSize * 4
+                );
+                haloGradient.addColorStop(0, nodeColor + '44');
+                haloGradient.addColorStop(0.5, nodeColor + '22');
+                haloGradient.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = haloGradient;
+                ctx.globalAlpha = this.glowIntensity * 0.4;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, pulseSize * 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Middle glow ring
+                ctx.strokeStyle = nodeColor;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = this.glowIntensity * 0.6;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, pulseSize + 4, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Main node body with gradient
+                const nodeGradient = ctx.createRadialGradient(
+                    this.x - pulseSize * 0.3, this.y - pulseSize * 0.3, 0,
+                    this.x, this.y, pulseSize
+                );
+                
+                if (this.nodeType === 'primary') {
+                    nodeGradient.addColorStop(0, '#ffffff');
+                    nodeGradient.addColorStop(0.3, nodeColor);
+                    nodeGradient.addColorStop(1, this.adjustColorBrightness(nodeColor, -30));
+                } else {
+                    nodeGradient.addColorStop(0, this.adjustColorBrightness(nodeColor, 40));
+                    nodeGradient.addColorStop(0.7, nodeColor);
+                    nodeGradient.addColorStop(1, this.adjustColorBrightness(nodeColor, -20));
+                }
+
+                ctx.fillStyle = nodeGradient;
+                ctx.globalAlpha = 0.9;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Inner bright core for primary nodes
+                if (this.nodeType === 'primary') {
+                    const coreGradient = ctx.createRadialGradient(
+                        this.x, this.y, 0,
+                        this.x, this.y, pulseSize * 0.6
+                    );
+                    coreGradient.addColorStop(0, '#ffffff');
+                    coreGradient.addColorStop(0.5, nodeColor + 'AA');
+                    coreGradient.addColorStop(1, 'transparent');
+
+                    ctx.fillStyle = coreGradient;
+                    ctx.globalAlpha = 0.8;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, pulseSize * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Subtle edge highlight
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.3 * this.glowIntensity;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, pulseSize, -Math.PI / 4, Math.PI / 4);
+                ctx.stroke();
+
+                ctx.globalAlpha = 1.0;
+            }
+
+            adjustColorBrightness(color, percent) {
+                // Parse hex color
+                const hex = color.replace('#', '');
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+
+                // Adjust brightness
+                const factor = (100 + percent) / 100;
+                const newR = Math.min(255, Math.max(0, Math.floor(r * factor)));
+                const newG = Math.min(255, Math.max(0, Math.floor(g * factor)));
+                const newB = Math.min(255, Math.max(0, Math.floor(b * factor)));
+
+                return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
             }
         }
 
